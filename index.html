@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اختبار RTU8 </title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #2c1e4a, #6a1b9a, #ab47bc);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .container {
+    background: #fff;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 620px;
+    width: 100%;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+  }
+  h1 {
+    text-align: center;
+    color: #6a1b9a;
+    margin-bottom: 5px;
+    font-size: 26px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+  .progress-bar {
+    width: 100%;
+    height: 10px;
+    background: #eee;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 25px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6a1b9a, #ab47bc);
+    width: 0%;
+    transition: width 0.4s;
+  }
+  .scene-tag {
+    display: inline-block;
+    background: #f3e5f5;
+    color: #6a1b9a;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 12px;
+  }
+  .question-number {
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .question-text {
+    font-size: 19px;
+    margin-bottom: 22px;
+    color: #222;
+    line-height: 1.7;
+  }
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .option {
+    background: #faf5fc;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    padding: 15px 18px;
+    cursor: pointer;
+    font-size: 15.5px;
+    line-height: 1.5;
+    transition: all 0.2s;
+    text-align: right;
+  }
+  .option:hover {
+    background: #f3e5f5;
+    border-color: #ce93d8;
+    transform: translateX(-3px);
+  }
+  .option.selected {
+    border-color: #6a1b9a;
+    background: #f3e5f5;
+    font-weight: bold;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    margin-top: 25px;
+    padding: 14px;
+    background: #6a1b9a;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 17px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn:hover { background: #4a148c; }
+  .btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+  .result-screen { text-align: center; }
+  .result-icon { font-size: 70px; margin-bottom: 10px; }
+  .result-title {
+    font-size: 26px;
+    font-weight: bold;
+    color: #6a1b9a;
+    margin-bottom: 15px;
+  }
+  .result-desc {
+    font-size: 16px;
+    color: #444;
+    line-height: 1.8;
+    background: #faf5fc;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    text-align: right;
+  }
+  .traits-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    text-align: right;
+  }
+  .trait-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .trait-label { width: 90px; color: #555; font-weight: bold; }
+  .trait-track {
+    flex: 1;
+    height: 12px;
+    background: #eee;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .trait-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ab47bc, #6a1b9a);
+    width: 0%;
+    transition: width 0.6s;
+  }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- شاشة الأسئلة -->
+  <div id="quizScreen">
+    <h1>🎭 اختبار الحياة الواقعية</h1>
+    <div class="subtitle">تخيل نفسك في كل موقف وأخذ قرارك بصدق</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="scene-tag" id="sceneTag"></div>
+    <div class="question-number" id="questionNumber"></div>
+    <div class="question-text" id="questionText"></div>
+    <div class="options" id="optionsContainer"></div>
+    <button class="btn" id="nextBtn" disabled>التالي</button>
+  </div>
+
+  <!-- شاشة النتيجة -->
+  <div class="result-screen hidden" id="resultScreen">
+    <div class="result-icon" id="resultIcon"></div>
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-desc" id="resultDesc"></div>
+    <div class="traits-bar" id="traitsBar"></div>
+    <button class="btn" id="restartBtn">إعادة الاختبار</button>
+  </div>
+
+</div>
+
+<script>
+const scenarios = [
+  {
+    tag: "🏠 في المنزل",
+    question: "رجعت من يوم طويل وتعبان، وطلب منك أحد أفراد عائلتك مساعدة عاجلة. وش تسوي؟",
+    options: [
+      { text: "أساعده فورًا حتى لو أنا متعب، عائلتي أولوية", trait: "متعاون" },
+      { text: "أشرح إني تعبان وأطلب تأجيل الموضوع شوي", trait: "واقعي" },
+      { text: "أساعد بس بمزاج متضايق شوي", trait: "عاطفي" },
+      { text: "أطلب منه يدبر حاله أو يطلب من شخص ثاني", trait: "مستقل" }
+    ]
+  },
+  {
+    tag: "💼 في العمل",
+    question: "مديرك حمّلك مهمة صعبة بوقت قصير جدًا وغير عادل. كيف تتصرف؟",
+    options: [
+      { text: "أشتغل عليها بصمت وأحاول أخلصها مهما صار", trait: "متعاون" },
+      { text: "أروح أكلم المدير مباشرة وأناقشه بهدوء", trait: "واقعي" },
+      { text: "أحس بالظلم وأصير متوتر طول اليوم", trait: "عاطفي" },
+      { text: "أرفض بأدب وأقول هذا مو ضمن صلاحياتي", trait: "مستقل" }
+    ]
+  },
+  {
+    tag: "👥 مع الأصدقاء",
+    question: "صديق مقرب لك أخطأ بحقك، لكنه ما يدري إنك زعلان. وش ردة فعلك؟",
+    options: [
+      { text: "أسكت وما أقول شي عشان ما أخسره", trait: "متعاون" },
+      { text: "أكلمه بصراحة وأوضح له وش صار", trait: "واقعي" },
+      { text: "أنسحب شوي وأصير بارد بدون ما أوضح السبب", trait: "عاطفي" },
+      { text: "أقاطعه لين يحس هو بنفسه بالغلط", trait: "مستقل" }
+    ]
+  },
+  {
+    tag: "💰 قرار مالي",
+    question: "عندك مبلغ فلوس زيادة هالشهر، وش أول شي يخطر في بالك؟",
+    options: [
+      { text: "أشتري شي لعائلتي أو أساعد حد محتاج", trait: "متعاون" },
+      { text: "أحطه في الادخار أو استثمار مدروس", trait: "واقعي" },
+      { text: "أشتري شي يفرحني أنا شخصيًا حتى لو مو ضروري", trait: "عاطفي" },
+      { text: "أخطط له لمشروع خاص فيني بالمستقبل", trait: "مستقل" }
+    ]
+  },
+  {
+    tag: "🚗 موقف طارئ",
+    question: "أنت بالطريق ووقفت سيارتك فجأة، والدوام قرب يبلش. وش تسوي أول شي؟",
+    options: [
+      { text: "أتصل بصديق يقدر يوصلني", trait: "متعاون" },
+      { text: "أتصل بالميكانيكي أو خدمة الطوارئ فورًا", trait: "واقعي" },
+      { text: "أتوتر وأحس بالضغط قبل لا أسوي أي شي", trait: "عاطفي" },
+      { text: "أحاول أصلحها بنفسي أول شي", trait: "مستقل" }
+    ]
+  },
+  {
+    tag: "❤️ علاقة شخصية",
+    question: "شريك حياتك أو شخص مقرب طلب منك تتنازل عن شي يهمك عشانه. وش قرارك؟",
+    options: [
+      { text: "أتنازل لأن راحته تهمني", trait: "متعاون" },
+      { text: "أحاول نلقى حل وسط يرضي الطرفين", trait: "واقعي" },
+      { text: "أتنازل لكن أحس بشي من الحزن جواي", trait: "عاطفي" },
+      { text: "أوضح له إن لي حدود ما أقدر أتنازل عنها", trait: "مستقل" }
+    ]
+  },
+  {
+    tag: "🎓 قرار مصيري",
+    question: "لازم تختار بين تخصص/وظيفة تحبها براتب أقل، أو وحدة ما تحبها براتب أعلى. وش تختار؟",
+    options: [
+      { text: "أستشير عائلتي أو المقربين وأاخذ رأيهم بعين الاعتبار", trait: "متعاون" },
+      { text: "أحسبها بالأرقام: الاستقرار المالي أهم", trait: "واقعي" },
+      { text: "أختار اللي يريح قلبي حتى لو الراتب أقل", trait: "عاطفي" },
+      { text: "أختار اللي يخدم أهدافي الشخصية على المدى الطويل", trait: "مستقل" }
+    ]
+  },
+  {
+    tag: "🌪️ موقف ضغط",
+    question: "صار خلاف كبير بين اثنين من المقربين لك وكل واحد يبيك بصفه. وش تسوي؟",
+    options: [
+      { text: "أحاول أصلح بينهم وأرضي الطرفين", trait: "متعاون" },
+      { text: "أسمع الطرفين بحياد وأحاول أفهم الموضوع من جذوره", trait: "واقعي" },
+      { text: "أتأثر نفسيًا وأحس إني بين نارين", trait: "عاطفي" },
+      { text: "أعتزل الموضوع تمامًا وأخليهم يحلونه لحالهم", trait: "مستقل" }
+    ]
+  },
+  {
+    tag: "🏆 نجاح مفاجئ",
+    question: "حققت إنجاز كبير في حياتك. أول شي تسويه؟",
+    options: [
+      { text: "أشارك الخبر مع عائلتي وأصدقائي فورًا", trait: "متعاون" },
+      { text: "أخطط للخطوة الجاية بواقعية", trait: "واقعي" },
+      { text: "أتأثر عاطفيًا وأدمع من الفرحة", trait: "عاطفي" },
+      { text: "أحتفل لحالي وأستمتع باللحظة بهدوء", trait: "مستقل" }
+    ]
+  },
+  {
+    tag: "🌙 لحظة تفكير",
+    question: "وأنت لحالك بالليل تفكر بحياتك، وش أكثر شي يشغل بالك؟",
+    options: [
+      { text: "كيف أخلي الناس اللي أحبهم سعداء", trait: "متعاون" },
+      { text: "خططي المستقبلية وأهدافي العملية", trait: "واقعي" },
+      { text: "مشاعري وذكرياتي وتجاربي", trait: "عاطفي" },
+      { text: "كيف أطور نفسي وأصير أقوى وحدي", trait: "مستقل" }
+    ]
+  }
+];
+
+const resultsData = {
+  "متعاون": {
+    icon: "🤝",
+    title: "الشخصية المتعاونة - قلب العائلة والدائرة",
+    desc: "أنت شخص يضع الناس اللي حواليك في مقدمة أولوياته. تحب تساعد وتسند وتكون سبب في راحة غيرك، حتى لو على حساب راحتك أحيانًا. هالصفة تخليك محبوب وقريب من الكل، بس لا تنسى تعطي نفسك حقها من الاهتمام أيضًا."
+  },
+  "واقعي": {
+    icon: "🧠",
+    title: "الشخصية الواقعية - العقل قبل العاطفة",
+    desc: "تتعامل مع الحياة بمنطق وهدوء. تحب تحلل الموقف قبل لا تتحرك، وتاخذ قراراتك بناءً على الحقائق مو بس المشاعر. هالصفة تخليك موثوق ومتزن، بس خلك حذر لا يوصل بيك الواقعية لدرجة تنسى تحس بمشاعر اللي حولك."
+  },
+  "عاطفي": {
+    icon: "💫",
+    title: "الشخصية العاطفية - القلب اللي يحس بكل شي",
+    desc: "أنت شخص حساس ومرهف المشاعر، تعيش المواقف بعمق وتتأثر بسرعة سواء بالإيجاب أو السلب. هالصفة تخليك إنسان صادق وقريب من مشاعر الناس، بس حاول توازن بين قلبك وعقلك عشان ما تتعب نفسك كثير."
+  },
+  "مستقل": {
+    icon: "🦅",
+    title: "الشخصية المستقلة - قوة تعتمد على نفسها",
+    desc: "تحب تعتمد على نفسك وتاخذ قراراتك بدون ما تحتاج تأكيد من حد. عندك حدود واضحة وتعرف وش تبيه بالضبط. هالصفة تخليك قوي وواثق، بس لا تنسى إن الاعتماد على الناس أحيانًا مو ضعف، هو نوع من الترابط الطبيعي."
+  }
+};
+
+let currentQuestion = 0;
+let selectedIndex = null;
+let answered = false;
+let traitCounts = { "متعاون": 0, "واقعي": 0, "عاطفي": 0, "مستقل": 0 };
+
+const sceneTag = document.getElementById('sceneTag');
+const questionNumberEl = document.getElementById('questionNumber');
+const questionTextEl = document.getElementById('questionText');
+const optionsContainer = document.getElementById('optionsContainer');
+const nextBtn = document.getElementById('nextBtn');
+const progressFill = document.getElementById('progressFill');
+const quizScreen = document.getElementById('quizScreen');
+const resultScreen = document.getElementById('resultScreen');
+const restartBtn = document.getElementById('restartBtn');
+
+function loadQuestion() {
+  answered = false;
+  selectedIndex = null;
+  nextBtn.disabled = true;
+  nextBtn.textContent = currentQuestion === scenarios.length - 1 ? "عرض النتيجة" : "التالي";
+
+  const q = scenarios[currentQuestion];
+  sceneTag.textContent = q.tag;
+  questionNumberEl.textContent = `الموقف ${currentQuestion + 1} من ${scenarios.length}`;
+  questionTextEl.textContent = q.question;
+  progressFill.style.width = `${(currentQuestion / scenarios.length) * 100}%`;
+
+  optionsContainer.innerHTML = "";
+  q.options.forEach((opt, index) => {
+    const div = document.createElement('div');
+    div.className = 'option';
+    div.textContent = opt.text;
+    div.addEventListener('click', () => selectOption(index, div));
+    optionsContainer.appendChild(div);
+  });
+}
+
+function selectOption(index, element) {
+  answered = true;
+  selectedIndex = index;
+
+  const allOptions = optionsContainer.querySelectorAll('.option');
+  allOptions.forEach(opt => opt.classList.remove('selected'));
+  element.classList.add('selected');
+
+  nextBtn.disabled = false;
+}
+
+nextBtn.addEventListener('click', () => {
+  if (!answered) return;
+
+  const chosenTrait = scenarios[currentQuestion].options[selectedIndex].trait;
+  traitCounts[chosenTrait]++;
+
+  currentQuestion++;
+  if (currentQuestion < scenarios.length) {
+    loadQuestion();
+  } else {
+    showResult();
+  }
+});
+
+function showResult() {
+  quizScreen.classList.add('hidden');
+  resultScreen.classList.remove('hidden');
+
+  let topTrait = Object.keys(traitCounts)[0];
+  for (const trait in traitCounts) {
+    if (traitCounts[trait] > traitCounts[topTrait]) {
+      topTrait = trait;
+    }
+  }
+
+  const result = resultsData[topTrait];
+  document.getElementById('resultIcon').textContent = result.icon;
+  document.getElementById('resultTitle').textContent = result.title;
+  document.getElementById('resultDesc').textContent = result.desc;
+
+  const traitsBar = document.getElementById('traitsBar');
+  traitsBar.innerHTML = "";
+  const total = scenarios.length;
+  Object.keys(traitCounts).forEach(trait => {
+    const percentage = Math.round((traitCounts[trait] / total) * 100);
+    const row = document.createElement('div');
+    row.className = 'trait-row';
+    row.innerHTML = `
+      <div class="trait-label">${trait}</div>
+      <div class="trait-track"><div class="trait-fill" style="width:${percentage}%"></div></div>
+      <div>${percentage}%</div>
+    `;
+    traitsBar.appendChild(row);
+  });
+}
+
+restartBtn.addEventListener('click', () => {
+  currentQuestion = 0;
+  traitCounts = { "متعاون": 0, "واقعي": 0, "عاطفي": 0, "مستقل": 0 };
+  resultScreen.classList.add('hidden');
+  quizScreen.classList.remove('hidden');
+  loadQuestion();
+});
+
+loadQuestion();
+</script>
+
+</body>
+</html>
